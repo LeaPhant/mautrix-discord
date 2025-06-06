@@ -1670,7 +1670,7 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 			filename = "SPOILER_" + filename
 		}
 
-		if content.EveryPizzaSpoiler {
+		if evt.Content.Raw["page.codeberg.everypizza.msc4193.spoiler"] == true {
 			filename = "SPOILER_" + filename
 		}
 
