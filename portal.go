@@ -1670,6 +1670,10 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 			filename = "SPOILER_" + filename
 		}
 
+		if content.EveryPizzaSpoiler {
+			filename = "SPOILER_" + filename
+		}
+
 		if portal.bridge.Config.Bridge.UseDiscordCDNUpload && !isWebhookSend && sess.IsUser {
 			att := &discordgo.MessageAttachment{
 				ID:          "0",
