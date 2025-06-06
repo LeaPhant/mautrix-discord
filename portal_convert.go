@@ -157,15 +157,10 @@ func (portal *Portal) convertDiscordAttachment(ctx context.Context, intent *apps
 		},
 	}
 
-<<<<<<< HEAD
 	var extra = make(map[string]any)
 
 	if strings.HasPrefix(att.Filename, "SPOILER_") {
 		extra["page.codeberg.everypizza.msc4193.spoiler"] = true
-=======
-	if strings.HasPrefix(att.Filename, "SPOILER_") {
-		content.EveryPizzaSpoiler = true
->>>>>>> fabfce1 (portal: add attachment spoilers (bi-directional))
 	}
 
 	if att.Description != "" {
