@@ -139,6 +139,7 @@ type AttachmentMediaData struct {
 	ChannelID    uint64
 	MessageID    uint64
 	AttachmentID uint64
+	Thumbnail    bool
 }
 
 func (amd *AttachmentMediaData) Write(to io.Writer) {

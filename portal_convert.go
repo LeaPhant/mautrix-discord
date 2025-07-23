@@ -28,14 +28,13 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog"
+	"go.mau.fi/mautrix-discord/database"
 	"golang.org/x/exp/slices"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/format"
 	"maunium.net/go/mautrix/id"
-
-	"go.mau.fi/mautrix-discord/database"
 )
 
 type ConvertedMessage struct {
@@ -168,6 +167,8 @@ func (portal *Portal) convertDiscordAttachment(ctx context.Context, intent *apps
 		content.FileName = att.Filename
 	}
 
+	mxc, mxcThumb := portal.bridge.DMA.AttachmentMXC(portal.Key.ChannelID, messageID, att)
+
 	switch strings.ToLower(strings.Split(att.ContentType, "/")[0]) {
 	case "audio":
 		content.MsgType = event.MsgAudio
@@ -182,10 +183,15 @@ func (portal *Portal) convertDiscordAttachment(ctx context.Context, intent *apps
 		content.MsgType = event.MsgImage
 	case "video":
 		content.MsgType = event.MsgVideo
+		content.Info.ThumbnailURL = mxcThumb.CUString()
+		content.Info.ThumbnailInfo = &event.FileInfo{
+			MimeType: "image/webp",
+			Width:    att.Width,
+			Height:   att.Height,
+		}
 	default:
 		content.MsgType = event.MsgFile
 	}
-	mxc := portal.bridge.DMA.AttachmentMXC(portal.Key.ChannelID, messageID, att)
 	if mxc.IsEmpty() {
 		content = portal.convertDiscordFile(ctx, "attachment", intent, att.ID, att.URL, content)
 	} else {
