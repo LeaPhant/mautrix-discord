@@ -175,6 +175,9 @@ bridge:
     # considers this to be a "risky" action. Note that the bridge will conservatively reject all outgoing DMs from users
     # until it has synced that user's relationships from Discord.
     forbid_dming_strangers: true
+    # Disable mentioning the user on Discord when replying.
+    # You can forcefully mention by prefixing your message with '@loud'
+    disable_reply_mention: false
     # Proxy for Discord connections
     proxy:
     # Should mxc uris copied from Discord be cached?

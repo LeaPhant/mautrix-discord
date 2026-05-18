@@ -1735,6 +1735,16 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 	}
 	silentReply := content.Mentions != nil && replyToMXID != "" &&
 		(len(content.Mentions.UserIDs) == 0 || (replyToUser != "" && !slices.Contains(content.Mentions.UserIDs, replyToUser)))
+
+	if portal.bridge.Config.Bridge.DisableReplyMention {
+		if trimmed, hasPrefix := strings.CutPrefix(sendReq.Content, "@loud"); hasPrefix  {
+			sendReq.Content = trimmed
+			silentReply = false
+		} else {
+			silentReply = true
+		}
+	}
+
 	if silentReply && sendReq.AllowedMentions != nil {
 		sendReq.AllowedMentions.RepliedUser = false
 	}
