@@ -371,6 +371,10 @@ bridge:
         "example.com": user
         "@admin:example.com": admin
 
+    # Surely you don't need like a comment or something you FUCK
+    disable_dms_for:
+        - "@disabled:example.com"
+
 # Logging config. See https://github.com/tulir/zeroconfig for details.
 logging:
     min_level: debug

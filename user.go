@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"runtime/debug"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -926,6 +927,11 @@ func (user *User) handleRelationshipChange(userID, nickname string) {
 }
 
 func (user *User) handlePrivateChannel(portal *Portal, meta *discordgo.Channel, timestamp time.Time, create, isInSpace bool) {
+	if user.shouldVoidDms() {
+		user.log.Debug().Msg("Nullified private channel handling")
+		return
+	}
+
 	if create && portal.MXID == "" {
 		err := portal.CreateMatrixRoom(user, meta)
 		if err != nil {
@@ -1266,6 +1272,11 @@ func (user *User) pushPortalMessage(msg interface{}, typeName, channelID, guildI
 		return
 	}
 
+	if guildID == "" && user.shouldVoidDms() {
+		user.log.Debug().Msg("Nullifying DM event")
+		return
+	}
+
 	portal, thread := user.findPortal(channelID)
 	if portal == nil {
 		user.log.Debug().
@@ -1572,4 +1583,8 @@ func (user *User) unbridgeGuild(guildID string) error {
 	guild.cleanup()
 	guild.RemoveMXID()
 	return nil
+}
+
+func (user *User) shouldVoidDms() bool {
+	return slices.Contains(user.bridge.Config.Bridge.DisableDmsFor, user.MXID.String())
 }
