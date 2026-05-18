@@ -95,6 +95,8 @@ type BridgeConfig struct {
 
 	Permissions bridgeconfig.PermissionConfig `yaml:"permissions"`
 
+	DisableDmsFor []string `yaml:"disable_dms_for"`
+
 	usernameTemplate    *template.Template `yaml:"-"`
 	displaynameTemplate *template.Template `yaml:"-"`
 	channelNameTemplate *template.Template `yaml:"-"`
