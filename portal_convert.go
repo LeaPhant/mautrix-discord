@@ -28,6 +28,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog"
+	"go.mau.fi/mautrix-discord/database"
 	"golang.org/x/exp/slices"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
@@ -208,8 +209,10 @@ func (portal *Portal) convertDiscordAttachment(ctx context.Context, intent *apps
 func (portal *Portal) convertDiscordVideoEmbed(ctx context.Context, intent *appservice.IntentAPI, embed *discordgo.MessageEmbed) *ConvertedMessage {
 	attachmentID := fmt.Sprintf("video_%s", embed.URL)
 	var proxyURL string
+	var proxyThumbURL string
 	if embed.Video != nil {
 		proxyURL = embed.Video.ProxyURL
+		proxyThumbURL = embed.Thumbnail.ProxyURL
 	} else if embed.Thumbnail != nil {
 		proxyURL = embed.Thumbnail.ProxyURL
 	} else {
@@ -224,6 +227,13 @@ func (portal *Portal) convertDiscordVideoEmbed(ctx context.Context, intent *apps
 		}
 	}
 	dbFile, err := portal.bridge.copyAttachmentToMatrix(intent, proxyURL, portal.Encrypted, NoMeta)
+
+	var dbFileThumb *database.File
+
+	if proxyThumbURL != "" {
+		dbFileThumb, err = portal.bridge.copyAttachmentToMatrix(intent, proxyThumbURL, portal.Encrypted, NoMeta)
+	}
+
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to copy video embed to Matrix")
 		return &ConvertedMessage{
@@ -244,6 +254,15 @@ func (portal *Portal) convertDiscordVideoEmbed(ctx context.Context, intent *apps
 		content.MsgType = event.MsgVideo
 		content.Info.Width = embed.Video.Width
 		content.Info.Height = embed.Video.Height
+
+		if proxyThumbURL != "" {
+			content.Info.ThumbnailURL = dbFileThumb.MXC.CUString()
+			content.Info.ThumbnailInfo = &event.FileInfo{
+				MimeType: "image/webp",
+				Width:    embed.Video.Width,
+				Height:   embed.Video.Height,
+			}
+		}
 	} else {
 		content.MsgType = event.MsgImage
 		content.Info.Width = embed.Thumbnail.Width
