@@ -255,15 +255,14 @@ func (portal *Portal) convertDiscordVideoEmbed(ctx context.Context, intent *apps
 	}
 	extra := map[string]any{}
 	if content.MsgType == event.MsgVideo && embed.Type == discordgo.EmbedTypeGifv {
-		return nil
-		/*extra["info"] = map[string]any{
+		extra["info"] = map[string]any{
 			"fi.mau.discord.gifv":  true,
 			"fi.mau.gif":           true,
 			"fi.mau.loop":          true,
 			"fi.mau.autoplay":      true,
 			"fi.mau.hide_controls": true,
 			"fi.mau.no_audio":      true,
-		}*/
+		}
 	}
 	return &ConvertedMessage{
 		AttachmentID: attachmentID,
