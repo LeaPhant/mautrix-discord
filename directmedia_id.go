@@ -38,6 +38,7 @@ const (
 	MediaIDClassSticker           MediaIDClass = 3
 	MediaIDClassUserAvatar        MediaIDClass = 4
 	MediaIDClassGuildMemberAvatar MediaIDClass = 5
+	MediaIDClassThumbnail         MediaIDClass = 6
 )
 
 type MediaIDData interface {
@@ -117,6 +118,8 @@ func (mid *MediaID) Read(from io.Reader) error {
 	switch MediaIDClass(versionAndClass[1]) {
 	case MediaIDClassAttachment:
 		mid.Data = &AttachmentMediaData{}
+	case MediaIDClassThumbnail:
+		mid.Data = &ThumbnailMediaData{}
 	case MediaIDClassEmoji:
 		mid.Data = &EmojiMediaData{}
 	case MediaIDClassSticker:
@@ -133,6 +136,12 @@ func (mid *MediaID) Read(from io.Reader) error {
 		return fmt.Errorf("failed to parse media ID data: %w", err)
 	}
 	return nil
+}
+
+type ThumbnailMediaData struct {
+	ChannelID    uint64
+	MessageID    uint64
+	AttachmentID uint64
 }
 
 type AttachmentMediaData struct {
@@ -165,6 +174,35 @@ func (amd *AttachmentMediaData) CacheKey() AttachmentCacheKey {
 	return AttachmentCacheKey{
 		ChannelID:    amd.ChannelID,
 		AttachmentID: amd.AttachmentID,
+		Thumbnail:    false,
+	}
+}
+
+func (amd *ThumbnailMediaData) Write(to io.Writer) {
+	_ = binary.Write(to, binary.BigEndian, amd)
+}
+
+func (amd *ThumbnailMediaData) Read(from io.Reader) (err error) {
+	return binary.Read(from, binary.BigEndian, amd)
+}
+
+func (amd *ThumbnailMediaData) Size() int {
+	return binary.Size(amd)
+}
+
+func (amd *ThumbnailMediaData) Wrap() *MediaID {
+	return &MediaID{
+		Version:   MediaIDVersion,
+		TypeClass: MediaIDClassThumbnail,
+		Data:      amd,
+	}
+}
+
+func (amd *ThumbnailMediaData) CacheKey() AttachmentCacheKey {
+	return AttachmentCacheKey{
+		ChannelID:    amd.ChannelID,
+		AttachmentID: amd.AttachmentID,
+		Thumbnail:    true,
 	}
 }
 
