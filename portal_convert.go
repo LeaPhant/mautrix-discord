@@ -688,10 +688,10 @@ func isPlainGifMessage(msg *discordgo.Message) bool {
 		return false
 	}
 	embed := msg.Embeds[0]
-	// isGifVideo := embed.Type == discordgo.EmbedTypeGifv && embed.Video != nil
+	isGifVideo := embed.Type == discordgo.EmbedTypeGifv && embed.Video != nil
 	isGifImage := embed.Type == discordgo.EmbedTypeImage && embed.Image == nil && embed.Thumbnail != nil && embed.Title == ""
 	contentIsOnlyURL := msg.Content == embed.URL || discordLinkRegexFull.MatchString(msg.Content)
-	return contentIsOnlyURL && isGifImage
+	return contentIsOnlyURL && (isGifVideo || isGifImage)
 }
 
 func (portal *Portal) convertDiscordMentions(msg *discordgo.Message, syncGhosts bool) *event.Mentions {
