@@ -64,6 +64,7 @@ type DirectMediaAPI struct {
 type AttachmentCacheKey struct {
 	ChannelID    uint64
 	AttachmentID uint64
+	Thumbnail    bool
 }
 
 type AttachmentCacheValue struct {
@@ -207,7 +208,7 @@ func (dma *DirectMediaAPI) addAttachmentToCache(channelID uint64, att *discordgo
 	return expiry
 }
 
-func (dma *DirectMediaAPI) AttachmentMXC(channelID, messageID string, att *discordgo.MessageAttachment) (mxc id.ContentURI) {
+func (dma *DirectMediaAPI) AttachmentMXC(channelID, messageID string, att *discordgo.MessageAttachment) (mxc id.ContentURI, mxcThumb id.ContentURI) {
 	if dma == nil {
 		return
 	}
@@ -230,10 +231,14 @@ func (dma *DirectMediaAPI) AttachmentMXC(channelID, messageID string, att *disco
 	dma.addAttachmentToCache(channelIDInt, att)
 	dma.attachmentCacheLock.Unlock()
 	return dma.makeMXC(&AttachmentMediaData{
-		ChannelID:    channelIDInt,
-		MessageID:    messageIDInt,
-		AttachmentID: attachmentIDInt,
-	})
+			ChannelID:    channelIDInt,
+			MessageID:    messageIDInt,
+			AttachmentID: attachmentIDInt,
+		}), dma.makeMXC(&ThumbnailMediaData{
+			ChannelID:    channelIDInt,
+			MessageID:    messageIDInt,
+			AttachmentID: attachmentIDInt,
+		})
 }
 
 func (dma *DirectMediaAPI) EmojiMXC(emojiID, name string, animated bool) (mxc id.ContentURI) {
@@ -405,6 +410,15 @@ func (dma *DirectMediaAPI) GetEmojiInfo(contentURI id.ContentURI) *EmojiMediaDat
 
 }
 
+func (dma *DirectMediaAPI) getThumbURL(attUrl string) (thumbUrl string) {
+	parsedUrl, _ := url.Parse(attUrl)
+	query := parsedUrl.Query()
+	query.Set("format", "webp")
+	parsedUrl.RawQuery = query.Encode()
+	parsedUrl.Host = "media.discordapp.net"
+	return parsedUrl.String()
+}
+
 func (dma *DirectMediaAPI) getMediaURL(ctx context.Context, encodedMediaID string) (url string, expiry time.Time, err error) {
 	var mediaID *MediaID
 	mediaID, err = ParseMediaID(encodedMediaID, dma.signatureKey)
@@ -422,7 +436,8 @@ func (dma *DirectMediaAPI) getMediaURL(ctx context.Context, encodedMediaID strin
 		defer dma.attachmentCacheLock.Unlock()
 		cached, ok := dma.attachmentCache[mediaData.CacheKey()]
 		if ok && time.Until(cached.Expiry) > 5*time.Minute {
-			return cached.URL, cached.Expiry, nil
+			var url = cached.URL
+			return url, cached.Expiry, nil
 		}
 		zerolog.Ctx(ctx).Debug().
 			Uint64("channel_id", mediaData.ChannelID).
@@ -430,6 +445,41 @@ func (dma *DirectMediaAPI) getMediaURL(ctx context.Context, encodedMediaID strin
 			Uint64("attachment_id", mediaData.AttachmentID).
 			Msg("Refreshing attachment URL")
 		url, expiry, err = dma.fetchNewAttachmentURL(ctx, mediaData)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to refresh attachment URL")
+			msg := "Failed to refresh attachment URL"
+			if errors.Is(err, ErrNoUsersWithAccessFound) {
+				msg = "No users found with access to the channel"
+			} else if errors.Is(err, ErrAttachmentNotFound) {
+				msg = "Attachment not found in message. Perhaps it was deleted?"
+			}
+			err = &RespError{
+				Code:    mautrix.MNotFound.ErrCode,
+				Message: msg,
+				Status:  http.StatusNotFound,
+			}
+		} else {
+			zerolog.Ctx(ctx).Debug().Time("expiry", expiry).Msg("Successfully refreshed attachment URL")
+		}
+	case *ThumbnailMediaData:
+		dma.attachmentCacheLock.Lock()
+		defer dma.attachmentCacheLock.Unlock()
+		cached, ok := dma.attachmentCache[mediaData.CacheKey()]
+		if ok && time.Until(cached.Expiry) > 5*time.Minute {
+			var url = dma.getThumbURL(cached.URL)
+			return url, cached.Expiry, nil
+		}
+		zerolog.Ctx(ctx).Debug().
+			Uint64("channel_id", mediaData.ChannelID).
+			Uint64("message_id", mediaData.MessageID).
+			Uint64("attachment_id", mediaData.AttachmentID).
+			Msg("Refreshing attachment URL")
+		url, expiry, err = dma.fetchNewAttachmentURL(ctx, &AttachmentMediaData{
+			ChannelID:    mediaData.ChannelID,
+			MessageID:    mediaData.MessageID,
+			AttachmentID: mediaData.AttachmentID,
+		})
+		url = dma.getThumbURL(url)
 		if err != nil {
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to refresh attachment URL")
 			msg := "Failed to refresh attachment URL"
