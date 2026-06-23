@@ -233,6 +233,13 @@ var matrixHTMLParser = &format.HTMLParser{
 			return fmt.Sprintf("[%s](%s)", escapeDiscordMarkdown(text), href)
 		}
 	},
+	ImageConverter: func(src, alt string, isEmoji bool, ctx format.Context) string {
+		if !isEmoji {
+			return ""
+		}
+
+		return fmt.Sprintf("[%s](%s)", alt, src)
+	},
 }
 
 func (portal *Portal) parseMatrixHTML(content *event.MessageEventContent, allowedLinkPreviews []string) (string, *discordgo.MessageAllowedMentions) {
@@ -249,7 +256,21 @@ func (portal *Portal) parseMatrixHTML(content *event.MessageEventContent, allowe
 		if content.Mentions != nil {
 			ctx.ReturnData[formatterContextInputAllowedMentionsKey] = content.Mentions.UserIDs
 		}
-		return variationselector.FullyQualify(matrixHTMLParser.Parse(content.FormattedBody, ctx)), allowedMentions
+
+		rawResult := variationselector.FullyQualify(matrixHTMLParser.Parse(content.FormattedBody, ctx))
+
+		re := regexp.MustCompile(`mxc\:\/\/[a-zA-Z0-9.\-]+\/[a-zA-Z0-9]+`)
+		rawResult = re.ReplaceAllStringFunc(rawResult, func(match string) string {
+			srcURI, err := id.ContentURIString(match).Parse()
+
+			if err != nil {
+				return ""
+			}
+
+			return portal.bridge.makeMediaProxyURL(srcURI)
+		})
+
+		return rawResult, allowedMentions
 	} else {
 		return variationselector.FullyQualify(escapeDiscordMarkdown(content.Body)), allowedMentions
 	}
