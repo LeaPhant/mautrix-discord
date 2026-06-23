@@ -234,25 +234,22 @@ var matrixHTMLParser = &format.HTMLParser{
 		}
 	},
 	ImageConverter: func(src, alt string, isEmoji bool, ctx format.Context) string {
-		if !isEmoji {
+		portal, ok := ctx.ReturnData[formatterContextPortalKey].(*Portal)
+		if !isEmoji || !ok {
 			return ""
 		}
 
-		if portal, ok := ctx.ReturnData[formatterContextPortalKey].(*Portal); ok {
-			if portal.bridge.Config.Bridge.PublicAddress == "" {
-				return fmt.Sprintf(":%s:", alt)
-			}
-
-			srcURI, err := id.ContentURIString(src).Parse()
-
-			if err != nil {
-				return ""
-			}
-
-			return fmt.Sprintf("[:%s:](%s)", alt, portal.bridge.makeMediaProxyURL(srcURI))
+		srcURI, err := id.ContentURIString(src).Parse()
+		if err != nil {
+			return fmt.Sprintf(":%s:", alt)
 		}
 
-		return ""
+		proxyURL := portal.bridge.makeMediaProxyURL(srcURI)
+		if proxyURL == "" {
+			return fmt.Sprintf(":%s:", alt)
+		}
+
+		return fmt.Sprintf("[:%s:](%s)", alt, proxyURL)
 	},
 }
 
