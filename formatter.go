@@ -238,7 +238,21 @@ var matrixHTMLParser = &format.HTMLParser{
 			return ""
 		}
 
-		return fmt.Sprintf("[:%s:](%s)", alt, src)
+		if portal, ok := ctx.ReturnData[formatterContextPortalKey].(*Portal); ok {
+			if portal.bridge.Config.Bridge.PublicAddress == "" {
+				return fmt.Sprintf(":%s:", alt)
+			}
+
+			srcURI, err := id.ContentURIString(src).Parse()
+
+			if err != nil {
+				return ""
+			}
+
+			return fmt.Sprintf("[:%s:](%s)", alt, portal.bridge.makeMediaProxyURL(srcURI))
+		}
+
+		return ""
 	},
 }
 
@@ -257,20 +271,7 @@ func (portal *Portal) parseMatrixHTML(content *event.MessageEventContent, allowe
 			ctx.ReturnData[formatterContextInputAllowedMentionsKey] = content.Mentions.UserIDs
 		}
 
-		rawResult := variationselector.FullyQualify(matrixHTMLParser.Parse(content.FormattedBody, ctx))
-
-		re := regexp.MustCompile(`mxc\:\/\/[a-zA-Z0-9.\-]+\/[a-zA-Z0-9]+`)
-		rawResult = re.ReplaceAllStringFunc(rawResult, func(match string) string {
-			srcURI, err := id.ContentURIString(match).Parse()
-
-			if err != nil {
-				return ""
-			}
-
-			return portal.bridge.makeMediaProxyURL(srcURI)
-		})
-
-		return rawResult, allowedMentions
+		return variationselector.FullyQualify(matrixHTMLParser.Parse(content.FormattedBody, ctx)), allowedMentions
 	} else {
 		return variationselector.FullyQualify(escapeDiscordMarkdown(content.Body)), allowedMentions
 	}
