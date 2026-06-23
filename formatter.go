@@ -18,6 +18,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -244,7 +246,13 @@ var matrixHTMLParser = &format.HTMLParser{
 			return fmt.Sprintf(":%s:", alt)
 		}
 
-		proxyURL := portal.bridge.makeMediaProxyURL(srcURI)
+		reader, _ := portal.bridge.Bot.Download(srcURI)
+		buf := make([]byte, 32*1024)
+		n, _ := io.ReadFull(reader, buf)
+		mime := http.DetectContentType(buf[:n])
+		ext := strings.Split(mime, "/")[1]
+
+		proxyURL := portal.bridge.makeMediaProxyURL(srcURI, ext)
 		if proxyURL == "" {
 			return fmt.Sprintf(":%s:", alt)
 		}

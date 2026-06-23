@@ -1412,6 +1412,8 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 
 func (br *DiscordBridge) serveMediaProxy(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	vars["checksum"] = strings.Split(vars["checksum"], ".")[0]
+
 	mxc := id.ContentURI{
 		Homeserver: vars["server"],
 		FileID:     vars["mediaID"],
@@ -1460,12 +1462,19 @@ func (br *DiscordBridge) hashMediaProxyURL(mxc id.ContentURI) (string, []byte) {
 	return path, checksum.Sum(nil)
 }
 
-func (br *DiscordBridge) makeMediaProxyURL(mxc id.ContentURI) string {
+func (br *DiscordBridge) makeMediaProxyURL(mxc id.ContentURI, ext string) string {
 	if br.Config.Bridge.PublicAddress == "" {
 		return ""
 	}
 	path, checksum := br.hashMediaProxyURL(mxc)
-	return br.Config.Bridge.PublicAddress + path + base64.RawURLEncoding.EncodeToString(checksum)
+
+	fullPath := br.Config.Bridge.PublicAddress + path + base64.RawURLEncoding.EncodeToString(checksum)
+
+	if ext != "" {
+		fullPath += fmt.Sprintf(".%s", ext)
+	}
+
+	return fullPath
 }
 
 func (portal *Portal) getRelayUserMeta(sender *User) (name, avatarURL string) {
@@ -1476,7 +1485,7 @@ func (portal *Portal) getRelayUserMeta(sender *User) (name, avatarURL string) {
 	}
 	mxc := member.AvatarURL.ParseOrIgnore()
 	if !mxc.IsEmpty() && portal.bridge.Config.Bridge.PublicAddress != "" {
-		avatarURL = portal.bridge.makeMediaProxyURL(mxc)
+		avatarURL = portal.bridge.makeMediaProxyURL(mxc, "")
 	}
 	return
 }
