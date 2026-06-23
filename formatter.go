@@ -238,7 +238,7 @@ var matrixHTMLParser = &format.HTMLParser{
 			return ""
 		}
 
-		return fmt.Sprintf("[%s](%s)", alt, src)
+		return fmt.Sprintf("[:%s:](%s)", alt, src)
 	},
 }
 
