@@ -208,10 +208,7 @@ func (portal *Portal) findApplicationEmoji(name string) *discordgo.Emoji {
 }
 
 func (portal *Portal) getApplicationEmoji(name string, mime string, buf []byte) *discordgo.Emoji {
-	nameFilter := regexp.MustCompile(`[^a-zA-Z0-9_]`)
-	filteredName := nameFilter.ReplaceAllString(name, "")
-
-	emoji := portal.findApplicationEmoji(filteredName)
+	emoji := portal.findApplicationEmoji(name)
 
 	if emoji != nil {
 		return emoji
@@ -222,7 +219,7 @@ func (portal *Portal) getApplicationEmoji(name string, mime string, buf []byte) 
 	emojiApp := portal.bridge.emojiApplication
 
 	emoji, err := emojiApp.session.ApplicationEmojiCreate(portal.bridge.Config.Bridge.EmojiApplication.AppId, &discordgo.EmojiParams{
-		Name:  filteredName,
+		Name:  name,
 		Image: fmt.Sprintf("data:%s;base64,%s", mime, base64str),
 	})
 
@@ -292,10 +289,11 @@ var matrixHTMLParser = &format.HTMLParser{
 		ext := strings.Split(mime, "/")[1]
 
 		if n < 256*1024 && portal.bridge.emojiApplication != nil {
-			discordEmoji := portal.getApplicationEmoji(alt, mime, buf)
+			discordEmoji := portal.getApplicationEmoji(srcURI.FileID, mime, buf)
 
 			if discordEmoji != nil {
-				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.webp?size=48&name=%s&lossless=true)", alt, discordEmoji.ID, discordEmoji.Name)
+				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.webp?size=%s&name=%s&lossless=true)",
+					alt, discordEmoji.ID, portal.bridge.Config.Bridge.EmojiApplication.Size, alt)
 			}
 		}
 

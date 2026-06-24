@@ -187,6 +187,8 @@ bridge:
         app_id: ""
         # Discord bot token
         app_token: ""
+        # The size in pixels to use for the discord emoji link
+        size: 48
     # Proxy for Discord connections
     proxy:
     # Should mxc uris copied from Discord be cached?

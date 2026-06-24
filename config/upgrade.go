@@ -68,6 +68,7 @@ func DoUpgrade(helper *up.Helper) {
 	helper.Copy(up.Bool|up.Null, "bridge", "emoji_application", "enabled")
 	helper.Copy(up.Str|up.Null, "bridge", "emoji_application", "app_id")
 	helper.Copy(up.Str|up.Null, "bridge", "emoji_application", "app_token")
+	helper.Copy(up.Int, "bridge", "emoji_application", "size")
 	helper.Copy(up.Str|up.Null, "bridge", "proxy")
 	helper.Copy(up.Str, "bridge", "cache_media")
 	helper.Copy(up.Bool, "bridge", "direct_media", "enabled")

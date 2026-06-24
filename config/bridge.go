@@ -110,6 +110,7 @@ type EmojiApplication struct {
 	Enabled  bool   `yaml:"enabled"`
 	AppId    string `yaml:"app_id"`
 	AppToken string `yaml:"app_token"`
+	Size     int    `yaml:"size"`
 }
 
 type DirectMedia struct {
