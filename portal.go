@@ -659,17 +659,19 @@ func (portal *Portal) handleDiscordMessageCreate(user *User, msg *discordgo.Mess
 	replyTo := portal.getReplyTarget(user, discordThreadID, msg.MessageReference, msg.Embeds, false)
 	mentions := portal.convertDiscordMentions(msg, true)
 
-	replyToEvent, err := portal.bridge.Bot.GetEvent(replyTo.UnstableRoomID, replyTo.EventID)
-	isMentionReply := false
+	if replyTo != nil {
+		replyToEvent, err := portal.bridge.Bot.GetEvent(replyTo.UnstableRoomID, replyTo.EventID)
+		isMentionReply := false
 
-	for _, mention := range msg.Mentions {
-		if mention.ID == msg.ReferencedMessage.Author.ID {
-			isMentionReply = true
+		for _, mention := range msg.Mentions {
+			if mention.ID == msg.ReferencedMessage.Author.ID {
+				isMentionReply = true
+			}
 		}
-	}
 
-	if err == nil && isMentionReply {
-		mentions.UserIDs = append(mentions.UserIDs, replyToEvent.Sender)
+		if err == nil && isMentionReply {
+			mentions.UserIDs = append(mentions.UserIDs, replyToEvent.Sender)
+		}
 	}
 
 	ts, _ := discordgo.SnowflakeTimestamp(msg.ID)
