@@ -260,6 +260,7 @@ func (br *DiscordBridge) loginEmojiApplication() {
 
 	sess := discordgo.NewHeartbeatSession()
 	s.HeartbeatSession = sess
+	s.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 
 	s.EventHandler = func(evt any) {
 		switch evt.(type) {
