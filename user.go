@@ -246,6 +246,37 @@ func (br *DiscordBridge) getAllUsersWithToken() []*User {
 	return users
 }
 
+func (br *DiscordBridge) loginEmojiApplication() {
+	s, err := discordgo.New("Bot " + br.Config.Bridge.EmojiApplication.AppToken)
+
+	if err != nil {
+		br.Log.Warnfln("Invalid parameters for emoji application")
+		return
+	}
+
+	/*&s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		br.Log.Infofln("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
+	})*/
+
+	sess := discordgo.NewHeartbeatSession()
+	s.HeartbeatSession = sess
+
+	s.EventHandler = func(evt any) {
+		switch evt.(type) {
+		case *discordgo.Ready:
+			br.Log.Infoln("Successfully logged in emoji application")
+			emojis, _ := s.ApplicationEmojis(br.Config.Bridge.EmojiApplication.AppId)
+
+			br.emojiApplication = &EmojiApplication{
+				session: s,
+				emojis:  emojis,
+			}
+		}
+	}
+
+	s.Open()
+}
+
 func (br *DiscordBridge) startUsers() {
 	br.ZLog.Debug().Msg("Starting users")
 

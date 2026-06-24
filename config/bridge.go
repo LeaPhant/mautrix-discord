@@ -59,6 +59,8 @@ type BridgeConfig struct {
 	ForbidDMingStrangers        bool `yaml:"forbid_dming_strangers"`
 	DisableReplyMention         bool `yaml:"disable_reply_mention"`
 
+	EmojiApplication EmojiApplication `yaml:"emoji_application"`
+
 	Proxy string `yaml:"proxy"`
 
 	CacheMedia  string      `yaml:"cache_media"`
@@ -102,6 +104,12 @@ type BridgeConfig struct {
 	displaynameTemplate *template.Template `yaml:"-"`
 	channelNameTemplate *template.Template `yaml:"-"`
 	guildNameTemplate   *template.Template `yaml:"-"`
+}
+
+type EmojiApplication struct {
+	Enabled  bool   `yaml:"enabled"`
+	AppId    string `yaml:"app_id"`
+	AppToken string `yaml:"app_token"`
 }
 
 type DirectMedia struct {

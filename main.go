@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/bwmarrin/discordgo"
 	"go.mau.fi/util/configupgrade"
 	"go.mau.fi/util/exsync"
 	"golang.org/x/sync/semaphore"
@@ -43,6 +44,11 @@ var (
 
 //go:embed example-config.yaml
 var ExampleConfig string
+
+type EmojiApplication struct {
+	session *discordgo.Session
+	emojis  []*discordgo.Emoji
+}
 
 type DiscordBridge struct {
 	bridge.Bridge
@@ -76,6 +82,8 @@ type DiscordBridge struct {
 	puppets             map[string]*Puppet
 	puppetsByCustomMXID map[id.UserID]*Puppet
 	puppetsLock         sync.Mutex
+
+	emojiApplication *EmojiApplication
 
 	attachmentTransfers         *exsync.Map[attachmentKey, *exsync.ReturnableOnce[*database.File]]
 	parallelAttachmentSemaphore *semaphore.Weighted
@@ -113,6 +121,9 @@ func (br *DiscordBridge) Start() {
 	}
 	br.DMA = newDirectMediaAPI(br)
 	br.WaitWebsocketConnected()
+	if br.Config.Bridge.EmojiApplication.Enabled {
+		br.loginEmojiApplication()
+	}
 	go br.startUsers()
 }
 

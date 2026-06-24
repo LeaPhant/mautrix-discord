@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -196,6 +197,44 @@ func escapeDiscordMarkdown(s string) string {
 	return builder.String()
 }
 
+func (portal *Portal) findApplicationEmoji(name string) *discordgo.Emoji {
+	for _, emoji := range portal.bridge.emojiApplication.emojis {
+		if emoji.Name == name {
+			return emoji
+		}
+	}
+
+	return nil
+}
+
+func (portal *Portal) getApplicationEmoji(name string, mime string, buf []byte) *discordgo.Emoji {
+	nameFilter := regexp.MustCompile(`[^a-zA-Z0-9_]`)
+	filteredName := nameFilter.ReplaceAllString(name, "")
+
+	emoji := portal.findApplicationEmoji(filteredName)
+
+	if emoji != nil {
+		return emoji
+	}
+
+	base64str := base64.StdEncoding.EncodeToString(buf)
+
+	emojiApp := portal.bridge.emojiApplication
+
+	emoji, err := emojiApp.session.ApplicationEmojiCreate(portal.bridge.Config.Bridge.EmojiApplication.AppId, &discordgo.EmojiParams{
+		Name:  filteredName,
+		Image: fmt.Sprintf("data:%s;base64,%s", mime, base64str),
+	})
+
+	if err != nil {
+		return nil
+	}
+
+	emojiApp.emojis = append(emojiApp.emojis, emoji)
+
+	return emoji
+}
+
 var matrixHTMLParser = &format.HTMLParser{
 	TabsToSpaces:   4,
 	Newline:        "\n",
@@ -247,10 +286,18 @@ var matrixHTMLParser = &format.HTMLParser{
 		}
 
 		reader, _ := portal.bridge.Bot.Download(srcURI)
-		buf := make([]byte, 32*1024)
+		buf := make([]byte, 257*1024)
 		n, _ := io.ReadFull(reader, buf)
 		mime := http.DetectContentType(buf[:n])
 		ext := strings.Split(mime, "/")[1]
+
+		if n < 256*1024 && portal.bridge.emojiApplication != nil {
+			discordEmoji := portal.getApplicationEmoji(alt, mime, buf)
+
+			if discordEmoji != nil {
+				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.webp?size=48&name=%s&lossless=true)", alt, discordEmoji.ID, discordEmoji.Name)
+			}
+		}
 
 		proxyURL := portal.bridge.makeMediaProxyURL(srcURI, ext)
 		if proxyURL == "" {

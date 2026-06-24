@@ -178,6 +178,15 @@ bridge:
     # Disable mentioning the user on Discord when replying.
     # You can forcefully mention by prefixing your message with '@loud'
     disable_reply_mention: false
+    # Set a discord application to upload emojis to for use in bridging
+    # Otherwise falls back to mautrix proxy via bridge.public_address
+    emoji_application:
+        # Should the emoji application be used?
+        enabled: false
+        # Discord application ID
+        app_id: ""
+        # Discord bot token
+        app_token: ""
     # Proxy for Discord connections
     proxy:
     # Should mxc uris copied from Discord be cached?
