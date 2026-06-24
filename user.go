@@ -254,10 +254,6 @@ func (br *DiscordBridge) loginEmojiApplication() {
 		return
 	}
 
-	/*&s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		br.Log.Infofln("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
-	})*/
-
 	sess := discordgo.NewHeartbeatSession()
 	s.HeartbeatSession = sess
 	s.Identify.Intents = discordgo.IntentsAllWithoutPrivileged

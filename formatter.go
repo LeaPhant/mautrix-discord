@@ -292,8 +292,8 @@ var matrixHTMLParser = &format.HTMLParser{
 			discordEmoji := portal.getApplicationEmoji(srcURI.FileID, mime, buf)
 
 			if discordEmoji != nil {
-				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.webp?size=%s&name=%s&lossless=true)",
-					alt, discordEmoji.ID, portal.bridge.Config.Bridge.EmojiApplication.Size, alt)
+				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.%s?size=%d&name=%s&lossless=true)",
+					alt, discordEmoji.ID, ext, portal.bridge.Config.Bridge.EmojiApplication.Size, alt)
 			}
 		}
 
