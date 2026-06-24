@@ -659,6 +659,19 @@ func (portal *Portal) handleDiscordMessageCreate(user *User, msg *discordgo.Mess
 	replyTo := portal.getReplyTarget(user, discordThreadID, msg.MessageReference, msg.Embeds, false)
 	mentions := portal.convertDiscordMentions(msg, true)
 
+	replyToEvent, err := portal.bridge.Bot.GetEvent(replyTo.UnstableRoomID, replyTo.EventID)
+	isMentionReply := false
+
+	for _, mention := range msg.Mentions {
+		if mention.ID == msg.ReferencedMessage.Author.ID {
+			isMentionReply = true
+		}
+	}
+
+	if err == nil && isMentionReply {
+		mentions.UserIDs = append(mentions.UserIDs, replyToEvent.Sender)
+	}
+
 	ts, _ := discordgo.SnowflakeTimestamp(msg.ID)
 
 	msgBody := msg
@@ -762,7 +775,10 @@ func (portal *Portal) getReplyTarget(source *User, threadID string, ref *discord
 	replyToMsg := portal.bridge.DB.Message.GetByDiscordID(targetPortal.Key, ref.MessageID)
 	if len(replyToMsg) > 0 {
 		if !crossRoomReplies {
-			return &event.InReplyTo{EventID: replyToMsg[0].MXID}
+			return &event.InReplyTo{
+				EventID:        replyToMsg[0].MXID,
+				UnstableRoomID: targetPortal.MXID,
+			}
 		}
 		return &event.InReplyTo{
 			EventID:        replyToMsg[0].MXID,
