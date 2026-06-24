@@ -670,7 +670,7 @@ func (portal *Portal) handleDiscordMessageCreate(user *User, msg *discordgo.Mess
 		}
 
 		if err == nil && isMentionReply {
-			mentions.UserIDs = append(mentions.UserIDs, replyToEvent.Sender)
+			_ = append(mentions.UserIDs, replyToEvent.Sender)
 		}
 	}
 
