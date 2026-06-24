@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -290,10 +291,11 @@ var matrixHTMLParser = &format.HTMLParser{
 
 		if n < 256*1024 && portal.bridge.emojiApplication != nil {
 			discordEmoji := portal.getApplicationEmoji(srcURI.FileID, mime, buf)
+			safeName := url.QueryEscape(alt)
 
 			if discordEmoji != nil {
 				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.%s?size=%d&name=%s&lossless=true)",
-					alt, discordEmoji.ID, ext, portal.bridge.Config.Bridge.EmojiApplication.Size, alt)
+					alt, discordEmoji.ID, ext, portal.bridge.Config.Bridge.EmojiApplication.Size, safeName)
 			}
 		}
 
