@@ -294,7 +294,7 @@ var matrixHTMLParser = &format.HTMLParser{
 			safeName := url.QueryEscape(alt)
 
 			if discordEmoji != nil {
-				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.%s?size=%d&name=%s&lossless=true)",
+				return fmt.Sprintf("[%s](https://cdn.discordapp.com/emojis/%s.%s?size=%d&name=%s&lossless=true&animated=true)",
 					alt, discordEmoji.ID, ext, portal.bridge.Config.Bridge.EmojiApplication.Size, safeName)
 			}
 		}
