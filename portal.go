@@ -1508,37 +1508,24 @@ func (portal *Portal) getRelayUserMeta(sender *User) (name, avatarURL string) {
 	return
 }
 
-const replyEmbedMaxLines = 1
-const replyEmbedMaxChars = 72
+const replyEmbedMaxChars = 120
 
 func cutBody(body string) string {
-	lines := strings.Split(strings.TrimSpace(body), "\n")
-	var output string
-	for i, line := range lines {
-		if i >= replyEmbedMaxLines {
-			output += " […]"
-			break
-		}
-		if i > 0 {
-			output += "\n"
-		}
-		output += line
-		if len(output) > replyEmbedMaxChars {
-			output = output[:replyEmbedMaxChars] + "…"
-			break
-		}
+	output := strings.ReplaceAll(strings.TrimSpace(body), "\n", " ")
+	if len(output) > replyEmbedMaxChars {
+		output = output[:replyEmbedMaxChars] + "…"
 	}
 	return output
 }
 
-func (portal *Portal) convertReplyMessageToEmbed(eventID id.EventID, url string) (*discordgo.MessageEmbed, error) {
+func (portal *Portal) convertReplyMessageToEmbed(eventID id.EventID, url string) (string, error) {
 	evt, err := portal.getEvent(eventID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get reply target event: %w", err)
+		return "", fmt.Errorf("failed to get reply target event: %w", err)
 	}
 	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
 	if !ok {
-		return nil, fmt.Errorf("unsupported event type %s / %T", evt.Type.String(), evt.Content.Parsed)
+		return "", fmt.Errorf("unsupported event type %s / %T", evt.Type.String(), evt.Content.Parsed)
 	}
 	content.RemoveReplyFallback()
 	var targetUser string
@@ -1554,9 +1541,11 @@ func (portal *Portal) convertReplyMessageToEmbed(eventID id.EventID, url string)
 		targetUser = evt.Sender.String()
 	}
 	body := escapeDiscordMarkdown(cutBody(content.Body))
-	body = fmt.Sprintf("**[Replying to](%s) %s**\n%s", url, targetUser, body)
-	embed := &discordgo.MessageEmbed{Description: body}
-	return embed, nil
+	if (len(body) == 0) {
+		
+	}
+	body = fmt.Sprintf("-# \u21A9 %s %s %s\n", url, targetUser, body)
+	return body, nil
 }
 
 func (portal *Portal) RefererOpt(threadID string) discordgo.RequestOption {
@@ -1686,8 +1675,8 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 				embed, err := portal.convertReplyMessageToEmbed(replyTo.MXID, messageURL)
 				if err != nil {
 					portal.log.Warn().Err(err).Msg("Failed to convert reply message to embed for webhook send")
-				} else if embed != nil {
-					sendReq.Embeds = []*discordgo.MessageEmbed{embed}
+				} else if len(embed) > 0 {
+					sendReq.Content = embed
 				}
 			} else {
 				sendReq.Reference = &discordgo.MessageReference{
@@ -1699,10 +1688,12 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 	}
 	switch content.MsgType {
 	case event.MsgText, event.MsgEmote, event.MsgNotice:
-		sendReq.Content, sendReq.AllowedMentions = portal.parseMatrixHTML(content, parseAllowedLinkPreviews(evt.Content.Raw))
+		var sendContent string
+		sendContent, sendReq.AllowedMentions = portal.parseMatrixHTML(content, parseAllowedLinkPreviews(evt.Content.Raw))
 		if content.MsgType == event.MsgEmote {
-			sendReq.Content = fmt.Sprintf("_%s_", sendReq.Content)
+			sendContent = fmt.Sprintf("_%s_", sendContent)
 		}
+		sendReq.Content += sendContent
 	case event.MsgAudio, event.MsgFile, event.MsgImage, event.MsgVideo:
 		data, err := downloadMatrixAttachment(portal.MainIntent(), content)
 		if err != nil {
