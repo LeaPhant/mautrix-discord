@@ -1518,34 +1518,34 @@ func cutBody(body string) string {
 	return output
 }
 
-func (portal *Portal) convertReplyMessageToEmbed(eventID id.EventID, url string) (string, error) {
+func (portal *Portal) convertReplyMessageToEmbed(eventID id.EventID, url string) (string, string, error) {
 	evt, err := portal.getEvent(eventID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get reply target event: %w", err)
+		return "", "", fmt.Errorf("failed to get reply target event: %w", err)
 	}
 	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
 	if !ok {
-		return "", fmt.Errorf("unsupported event type %s / %T", evt.Type.String(), evt.Content.Parsed)
+		return "", "", fmt.Errorf("unsupported event type %s / %T", evt.Type.String(), evt.Content.Parsed)
 	}
 	content.RemoveReplyFallback()
 	var targetUser string
+	var targetId string
 
 	puppet := portal.bridge.GetPuppetByMXID(evt.Sender)
 	if puppet != nil {
 		targetUser = fmt.Sprintf("<@%s>", puppet.ID)
+		targetId = puppet.ID
 	} else if user := portal.bridge.GetUserByMXID(evt.Sender); user != nil && user.DiscordID != "" {
 		targetUser = fmt.Sprintf("<@%s>", user.DiscordID)
+		targetId = user.DiscordID
 	} else if member := portal.bridge.StateStore.GetMember(portal.MXID, evt.Sender); member != nil && member.Displayname != "" {
 		targetUser = member.Displayname
 	} else {
 		targetUser = evt.Sender.String()
 	}
 	body := escapeDiscordMarkdown(cutBody(content.Body))
-	if (len(body) == 0) {
-		
-	}
 	body = fmt.Sprintf("-# \u21A9 %s %s %s\n", url, targetUser, body)
-	return body, nil
+	return body, targetId, nil
 }
 
 func (portal *Portal) RefererOpt(threadID string) discordgo.RequestOption {
@@ -1664,6 +1664,9 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 		}
 	}
 
+	var sendContent string
+	sendContent, sendReq.AllowedMentions = portal.parseMatrixHTML(content, parseAllowedLinkPreviews(evt.Content.Raw))
+
 	replyToMXID := content.RelatesTo.GetNonFallbackReplyTo()
 	var replyToUser id.UserID
 	if replyToMXID != "" {
@@ -1672,11 +1675,12 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 			replyToUser = replyTo.SenderMXID
 			if isWebhookSend {
 				messageURL := fmt.Sprintf("https://discord.com/channels/%s/%s/%s", portal.GuildID, channelID, replyTo.DiscordID)
-				embed, err := portal.convertReplyMessageToEmbed(replyTo.MXID, messageURL)
+				embed, replyUserId, err := portal.convertReplyMessageToEmbed(replyTo.MXID, messageURL)
 				if err != nil {
 					portal.log.Warn().Err(err).Msg("Failed to convert reply message to embed for webhook send")
 				} else if len(embed) > 0 {
 					sendReq.Content = embed
+					sendReq.AllowedMentions.Users = append(sendReq.AllowedMentions.Users, replyUserId)
 				}
 			} else {
 				sendReq.Reference = &discordgo.MessageReference{
@@ -1688,8 +1692,6 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 	}
 	switch content.MsgType {
 	case event.MsgText, event.MsgEmote, event.MsgNotice:
-		var sendContent string
-		sendContent, sendReq.AllowedMentions = portal.parseMatrixHTML(content, parseAllowedLinkPreviews(evt.Content.Raw))
 		if content.MsgType == event.MsgEmote {
 			sendContent = fmt.Sprintf("_%s_", sendContent)
 		}
@@ -1703,7 +1705,7 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 		filename := content.Body
 		if content.FileName != "" && content.FileName != content.Body {
 			filename = content.FileName
-			sendReq.Content, sendReq.AllowedMentions = portal.parseMatrixHTML(content, parseAllowedLinkPreviews(evt.Content.Raw))
+			sendReq.Content += sendContent
 		}
 
 		if evt.Content.Raw["page.codeberg.everypizza.msc4193.spoiler"] == true {
