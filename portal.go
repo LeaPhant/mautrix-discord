@@ -1680,7 +1680,10 @@ func (portal *Portal) handleMatrixMessage(sender *User, evt *event.Event) {
 					portal.log.Warn().Err(err).Msg("Failed to convert reply message to embed for webhook send")
 				} else if len(embed) > 0 {
 					sendReq.Content = embed
-					sendReq.AllowedMentions.Users = append(sendReq.AllowedMentions.Users, replyUserId)
+					if len(replyUserId) > 0 {
+						sendReq.AllowedMentions.Users = append(sendReq.AllowedMentions.Users, replyUserId)
+					}
+
 				}
 			} else {
 				sendReq.Reference = &discordgo.MessageReference{
