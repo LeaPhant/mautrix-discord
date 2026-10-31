@@ -198,6 +198,11 @@ func escapeDiscordMarkdown(s string) string {
 	return builder.String()
 }
 
+func escapeDiscordMarkdownAndLinks(s string) string {
+	var re = regexp.MustCompile(`(https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*))`)
+	return re.ReplaceAllString(escapeDiscordMarkdown(s), `<$1>`)
+}
+
 func (portal *Portal) findApplicationEmoji(name string) *discordgo.Emoji {
 	for _, emoji := range portal.bridge.emojiApplication.emojis {
 		if emoji.Name == name {

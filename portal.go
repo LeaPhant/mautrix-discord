@@ -1543,7 +1543,7 @@ func (portal *Portal) convertReplyMessageToEmbed(eventID id.EventID, url string)
 	} else {
 		targetUser = evt.Sender.String()
 	}
-	body := escapeDiscordMarkdown(cutBody(content.Body))
+	body := escapeDiscordMarkdownAndLinks(cutBody(content.Body))
 	body = fmt.Sprintf("-# [<:reply:1565122200288104588>](%s) %s %s\n", url, targetUser, body)
 	return body, targetId, nil
 }
